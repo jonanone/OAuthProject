@@ -1,6 +1,6 @@
 body {
     font-family: sans-serif;    
-    background-color: #333333;
+    
     margin: 0px;
 }
 
@@ -65,10 +65,10 @@ body.home {
         -moz-background-size: cover;
         -o-background-size: cover;
         background-size: cover;
-        height: 500px;
+        height: 200px;
         text-align: center;
         position: relative;
-        box-shadow: 0px 0px 10px black;
+        box-shadow: 0px 0px 10px #ccc;
         h1 {
             position: absolute;
             bottom: 30px;
@@ -87,7 +87,7 @@ body.home {
                 background-color: #111;
                 padding: 10px;
                 border-radius: 2px;
-                box-shadow: 0px 5px 10px black;
+                box-shadow: 0px 5px 10px #ccc;
                 color: #EAEAEA;
                 font-size: .75em;
             }            
@@ -107,7 +107,7 @@ body.home {
                         padding: 10px;
                         height: 100%;
                         border-radius: 2px;
-                        box-shadow: 0px 5px 10px black;
+                        box-shadow: 0px 0px 10px #ccc;
                         .name {
                             font-size: 1.5em;
                             display: inline-block;
@@ -149,10 +149,10 @@ body.restaurant {
         -moz-background-size: cover;
         -o-background-size: cover;
         background-size: cover;
-        height: 500px;
+        height: 200px;
         text-align: center;
         position: relative;
-        box-shadow: 0px 0px 10px black;
+        box-shadow: 0px 0px 10px #ccc;
         h1 {
             position: absolute;
             bottom: 30px;
@@ -171,7 +171,7 @@ body.restaurant {
                 background-color: #111;
                 padding: 10px;
                 border-radius: 2px;
-                box-shadow: 0px 5px 10px black;
+                box-shadow: 0px 0px 10px #ccc;
                 color: #EAEAEA;
                 font-size: .75em;
             }            
@@ -191,7 +191,7 @@ body.restaurant {
                         padding: 10px;
                         height: 100%;
                         border-radius: 2px;
-                        box-shadow: 0px 5px 10px black;
+                        box-shadow: 0px 0px 10px #ccc;
                         .name {
                             font-size: 1.5em;
                             display: inline-block;
@@ -245,7 +245,7 @@ body.item-form {
         height: 150px;
         text-align: center;
         position: relative;
-        box-shadow: 0px 0px 10px black;
+        box-shadow: 0px 0px 10px #ccc;
         h1 {
             position: absolute;
             bottom: 30px;
@@ -263,7 +263,7 @@ body.item-form {
             background-color: white;
             padding: 10px;
             border-radius: 2px;
-            box-shadow: 0px 5px 10px black;
+            box-shadow: 0px 0px 10px #ccc;
             color: #EAEAEA;
             input[type="radio"]{
                 width: auto;                               
@@ -287,7 +287,7 @@ body.item-form {
                         padding: 10px;
                         height: 100%;
                         border-radius: 2px;
-                        box-shadow: 0px 5px 10px black;
+                        box-shadow: 0px 0px 10px #ccc;
                         .name {
                             font-size: 1.5em;
                             display: inline-block;
