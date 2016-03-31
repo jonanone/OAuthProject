@@ -1,12 +1,12 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import inspect
-from database_setup import Base, Restaurant, MenuItem
+from database_setup import Base, Restaurant, MenuItem, User
 
 
 # Init database session
 def db_init():
-    engine = create_engine('sqlite:///restaurantmenu.db')
+    engine = create_engine('sqlite:///restaurantmenuwithusers.db')
     Base.metadata.bind = engine
     DBSession = sessionmaker(bind=engine)
     session = DBSession()
@@ -36,7 +36,7 @@ def get_restaurant(session, restaurant_id):
 
 # Add new restaurant
 def add_restaurant(session, data):
-    new_restaurant = Restaurant(name=data['name'])
+    new_restaurant = Restaurant(name=data['name'], user_id=data['user_id'])
     session.add(new_restaurant)
     session.commit()
     return new_restaurant
@@ -56,8 +56,7 @@ def edit_restaurant(session, restaurant_id, data):
 
 
 # Delete given restaurant
-def delete_restaurant(session, restaurant_id):
-    restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
+def delete_restaurant(session, restaurant):
     session.delete(restaurant)
     session.commit()
     return 1
@@ -80,7 +79,8 @@ def add_menu_item(session, restaurant, data):
                         description=data['description'],
                         price=data['price'],
                         course=data['course'],
-                        restaurant_id=restaurant.id)
+                        restaurant_id=restaurant.id,
+                        user_id=restaurant.user_id)
     session.add(new_item)
     session.commit()
     return new_item
@@ -103,6 +103,31 @@ def delete_menu_item(session, menu_item):
     session.delete(menu_item)
     session.commit()
     return 1
+
+
+# User management
+def createUser(session, login_session):
+    newUser = User(name=login_session['username'],
+                   email=login_session['email'],
+                   picture=login_session['picture'])
+    session.add(newUser)
+    session.commit()
+    user = session.query(User).filter_by(email=login_session['email']).one()
+    print 'User %s created succesfully' % user.name
+    return user.id
+
+
+def getUserInfo(session, user_id):
+    user = session.query(User).filter_by(id=user_id).one()
+    return user
+
+
+def getUserId(session, email):
+    try:
+        user = session.query(User).filter_by(email=email).one()
+        return user.id
+    except:
+        return None
 
 
 def test():
