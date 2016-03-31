@@ -19,6 +19,11 @@
         <div class="container">
             <div class="top-actions">
                 <a href="{{ url_for('newRestaurant') }}">Add new restaurant</a>
+                {% if not user %}
+                    <a href="{{ url_for('showLogin') }}">Login</a>
+                {% else %}
+                    <a href="{{ url_for('gdisconnect') }}">Logout</a>
+                {% endif %}
             </div>
             <div class="items">
                 {% for restaurant in restaurants %}
@@ -33,8 +38,10 @@
                                 </div>                             
                                 <div class="actions">
                                     <a href="{{ url_for('restaurantMenu', restaurant_id=restaurant.id) }}">View</a>
-                                    <a href="{{ url_for('editRestaurant', restaurant_id=restaurant.id) }}">Edit</a>
-                                    <a href="{{ url_for('deleteRestaurant', restaurant_id=restaurant.id) }}">Delete</a>
+                                    {% if restaurant.user_id == user.id %}
+                                        <a href="{{ url_for('editRestaurant', restaurant_id=restaurant.id) }}">Edit</a>
+                                        <a href="{{ url_for('deleteRestaurant', restaurant_id=restaurant.id) }}">Delete</a>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>      

@@ -6,7 +6,8 @@ from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
 import httplib2
 import json
-import random, string
+import random
+import string
 import requests
 
 from database_helper import db_init
@@ -15,6 +16,7 @@ from database_helper import add_menu_item, edit_menu_item, delete_menu_item
 from database_helper import get_menu_item, get_restaurant
 from database_helper import get_restaurants, get_restaurant_items
 from database_helper import get_ordered_restaurants
+from database_helper import createUser, getUserInfo, getUserId
 
 # Initialization
 app = Flask(__name__)
@@ -27,8 +29,13 @@ CLIENT_ID = json.loads(
 @app.route('/restaurants/')
 def listRestaurants():
     restaurants = get_restaurants(session)
+    user = None
+    userId = login_session.get('user_id')
+    if userId:
+        user = getUserInfo(session, userId)
     return render_template('restaurants.html',
-                           restaurants=restaurants)
+                           restaurants=restaurants,
+                           user=user)
 
 
 @app.route('/restaurant/<int:restaurant_id>/')
@@ -36,9 +43,14 @@ def listRestaurants():
 def restaurantMenu(restaurant_id):
     restaurant = get_restaurant(session, restaurant_id)
     items = get_restaurant_items(session, restaurant)
+    user = None
+    userId = login_session.get('user_id')
+    if userId:
+        user = getUserInfo(session, userId)
     return render_template('menu.html',
                            restaurant=restaurant,
-                           items=items)
+                           items=items,
+                           user=user)
 
 
 @app.route('/restaurant/new', methods=['GET', 'POST'])
@@ -49,8 +61,10 @@ def newRestaurant():
     else:
         print 'Logged in with user' + login_session.get('username')
     if request.method == 'POST':
-        new_restaurant = add_restaurant(session,
-                                        {'name': request.form['name']})
+        new_restaurant = add_restaurant(session, {
+            'name': request.form['name'],
+            'user_id': login_session.get('user_id')
+            })
         flash(new_restaurant.name + ' restaurant created.')
         return redirect(url_for('listRestaurants'))
     else:
@@ -62,15 +76,20 @@ def editRestaurant(restaurant_id):
     if 'username' not in login_session:
         redirect('/login')
     restaurant = get_restaurant(session, restaurant_id)
-    if request.method == 'POST':
-        edited_restaurant = edit_restaurant(session,
-                                            restaurant_id,
-                                            request.form)
-        flash(edited_restaurant.name + ' successfully edited')
-        return redirect(url_for('listRestaurants'))
+    userId = login_session.get('user_id')
+    if restaurant.user_id == userId:
+        if request.method == 'POST':
+            edited_restaurant = edit_restaurant(session,
+                                                restaurant_id,
+                                                request.form)
+            flash(edited_restaurant.name + ' successfully edited')
+            return redirect(url_for('listRestaurants'))
+        else:
+            return render_template('editRestaurant.html',
+                                   restaurant=restaurant)
     else:
-        return render_template('editRestaurant.html',
-                               restaurant=restaurant)
+        flash("You don't have authorization to edit that restaurant")
+        return redirect(url_for('listRestaurants'))
 
 
 @app.route('/restaurant/<int:restaurant_id>/delete', methods=['GET', 'POST'])
@@ -78,16 +97,21 @@ def deleteRestaurant(restaurant_id):
     if 'username' not in login_session:
         redirect('/login')
     restaurant = get_restaurant(session, restaurant_id)
-    if request.method == 'POST':
-        restaurant_deleted = delete_restaurant(session, restaurant_id)
-        if restaurant_deleted:
-            flash('Restaurant successfully deleted.')
+    userId = login_session.get('user_id')
+    if restaurant.user_id == userId:
+        if request.method == 'POST':
+            restaurant_deleted = delete_restaurant(session, restaurant)
+            if restaurant_deleted:
+                flash('Restaurant successfully deleted.')
+            else:
+                flash('Restaurant cannot be deleted. Please, try again later.')
+            return redirect(url_for('listRestaurants'))
         else:
-            print 'That restaurant cannot be deleted. Please, try again later.'
-        return redirect(url_for('listRestaurants'))
+            return render_template('deleteRestaurant.html',
+                                   restaurant=restaurant)
     else:
-        return render_template('deleteRestaurant.html',
-                               restaurant=restaurant)
+        flash("You don't have authorization to delete that restaurant")
+        return redirect(url_for('listRestaurants'))
 
 
 @app.route('/restaurant/<int:restaurant_id>/menu/item/new',
@@ -96,16 +120,23 @@ def newMenuItem(restaurant_id):
     if 'username' not in login_session:
         redirect('/login')
     restaurant = get_restaurant(session, restaurant_id)
-    if request.method == 'POST':
-        new_item = add_menu_item(session,
-                                 restaurant,
-                                 request.form)
-        flash(new_item.name + ' menu item successfully added.')
+    userId = login_session.get('user_id')
+    if restaurant.user_id == userId:
+        if request.method == 'POST':
+            new_item = add_menu_item(session,
+                                     restaurant,
+                                     request.form)
+            flash(new_item.name + ' menu item successfully added.')
+            return redirect(url_for('restaurantMenu',
+                                    restaurant_id=restaurant_id))
+        else:
+            return render_template('newMenuItem.html',
+                                   restaurant=restaurant)
+    else:
+        flash("You don't have authorization to create a\
+              new item on that restaurant")
         return redirect(url_for('restaurantMenu',
                                 restaurant_id=restaurant_id))
-    else:
-        return render_template('newMenuItem.html',
-                               restaurant=restaurant)
 
 
 @app.route('/restaurant/<int:restaurant_id>/menu/item/<int:item_id>/edit',
@@ -115,14 +146,18 @@ def editMenuItem(restaurant_id, item_id):
         redirect('/login')
     menu_item = get_menu_item(session, item_id)
     restaurant = get_restaurant(session, restaurant_id)
-    if request.method == 'POST':
-        edited_item = edit_menu_item(session, menu_item, request.form)
-        flash(edited_item.name + ' successfully edited.')
-        return redirect(url_for('restaurantMenu', restaurant_id=restaurant_id))
+    userId = login_session.get('user_id')
+    if restaurant.user_id == userId:
+        if request.method == 'POST':
+            edited_item = edit_menu_item(session, menu_item, request.form)
+            flash(edited_item.name + ' successfully edited.')
+        else:
+            return render_template('editMenuItem.html',
+                                   restaurant=restaurant,
+                                   item=menu_item)
     else:
-        return render_template('editMenuItem.html',
-                               restaurant=restaurant,
-                               item=menu_item)
+        flash("You don't have authorization to edit that item")
+        return redirect(url_for('restaurantMenu', restaurant_id=restaurant.id))
 
 
 @app.route('/restaurant/<int:restaurant_id>/menu/item/<int:item_id>/delete',
@@ -132,15 +167,21 @@ def deleteMenuItem(restaurant_id, item_id):
         redirect('/login')
     menu_item = get_menu_item(session, item_id)
     restaurant = get_restaurant(session, restaurant_id)
-    if request.method == 'POST':
-        item_deleted = delete_menu_item(session, menu_item)
-        if item_deleted:
-            flash('Item successfully deleted.')
-        return redirect(url_for('restaurantMenu', restaurant_id=restaurant.id))
+    userId = login_session.get('user_id')
+    if restaurant.user_id == userId:
+        if request.method == 'POST':
+            item_deleted = delete_menu_item(session, menu_item)
+            if item_deleted:
+                flash('Item successfully deleted.')
+            return redirect(url_for('restaurantMenu',
+                                    restaurant_id=restaurant.id))
+        else:
+            return render_template('deleteMenuItem.html',
+                                   restaurant=restaurant,
+                                   item=menu_item)
     else:
-        return render_template('deleteMenuItem.html',
-                               restaurant=restaurant,
-                               item=menu_item)
+        flash("You don't have authorization to delete that item")
+        return redirect(url_for('restaurantMenu', restaurant_id=restaurant.id))
 
 
 # Restaurant Menu APP API
@@ -250,6 +291,15 @@ def gconnect():
     login_session['picture'] = data['picture']
     login_session['email'] = data['email']
 
+    userId = login_session.get('user_id')
+    if not userId:
+        userId = getUserId(session, login_session.get('email'))
+    if userId is None:
+        userId = createUser(session, login_session)
+    user = getUserInfo(session, userId)
+    login_session['user_id'] = userId
+    print 'Hello %s, welcome to Restaurant Menu APP' % user.name
+
     output = ''
     output += '<h1>Welcome, '
     output += login_session['username']
@@ -269,19 +319,17 @@ def gconnect():
 def gdisconnect():
     # Only disconnect a connected user
     access_token = login_session.get('access_token')
-    print 'In gdisconnect access token is %s', access_token
-    print 'User name is: '
-    print login_session['username']
     if access_token is None:
         response = make_response(
             json.dumps('Current user is not connected.'), 401)
         response.headers['Content-Type'] = 'application/json'
-        return response
+        flash("Current user is not connected")
+        return redirect(url_for('listRestaurants'))
     # Execute HTTP GET request to revoke current token
     url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % access_token
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
-    if result['status'] == 200:
+    if result['status'] == '200':
         # Reset the user's session
         del login_session['access_token']
         del login_session['gplus_id']
@@ -289,12 +337,11 @@ def gdisconnect():
         del login_session['email']
         del login_session['picture']
 
-        response = make_response(
-            json.dumps('Successfully disconnected.'), 200)
-        response.headers['Content-Type'] = 'application/json'
-        return response
+        flash("Successfully disconnected")
+        return redirect(url_for('listRestaurants'))
     else:
         # For whatever reason, the given token was invalid
+        print result
         response = make_response(
             json.dumps('Failed to revoke token for given user.'), 401)
         response.headers['Content-Type'] = 'application/json'
